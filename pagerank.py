@@ -2,6 +2,7 @@ import os
 import random
 import re
 import sys
+import numpy as np
 
 DAMPING = 0.85
 SAMPLES = 10000
@@ -94,12 +95,12 @@ def sample_pagerank(corpus, damping_factor, n):
     ranks = {page: 0 for page in corpus.keys()}
 
     # i == 0
-    chosen_page = random.choices(p.keys(), weights=p.values(), k=1)[0]
+    chosen_page = random.choices(list(p.keys()), weights=p.values(), k=1)[0]
     ranks[chosen_page] += 1
 
     for _ in range(n - 1):
         p = transition_model(corpus, chosen_page, damping_factor)
-        chosen_page = random.choices(p.keys(), weights=p.values(), k=1)[0]
+        chosen_page = random.choices(list(p.keys()), weights=p.values(), k=1)[0]
         ranks[chosen_page] += 1
     
     return {page: (count / n) for page, count in ranks.items()}
@@ -116,7 +117,43 @@ def iterate_pagerank(corpus, damping_factor):
     their estimated PageRank value (a value between 0 and 1). All
     PageRank values should sum to 1.
     """
-    raise NotImplementedError
+    d = damping_factor
+    N = len(corpus.keys()) # Number of pages in corpus
+    convergence_threshold = 0.001
+
+    ranks = {page: 1 / N for page in corpus.keys()} # set initial ranks
+
+    # create dict of incoming links
+    incoming_links = {page: set() for page in corpus.keys()}
+    for key, value in corpus.items():
+        # if there are no outgoing links from "key", add key to each incoming link
+        if len(value) == 0:
+            for page in incoming_links.keys():
+                incoming_links[page].add(key)
+            continue
+        for link in value:
+            incoming_links[link].add(key)
+
+    # calculate Pagerank for each page
+    while True:
+        new_ranks = ranks.copy()
+        for page, links_from in incoming_links.items():
+            total = []
+            for link_from in links_from:
+                numlinks = len(corpus[link_from])
+                total.append(ranks[link_from] / numlinks)
+            
+            a = np.array(total)
+            new_ranks[page] = (1 - d) / N + d * np.sum(a)
+
+        # check for convergence
+        if all(abs(rank - ranks[page]) < convergence_threshold for page, rank in new_ranks.items()):
+            break
+        ranks = new_ranks
+
+    return ranks
+
+
 
 
 if __name__ == "__main__":
