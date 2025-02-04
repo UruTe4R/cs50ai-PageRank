@@ -58,10 +58,9 @@ def transition_model(corpus, page, damping_factor):
     linked to by `page`. With probability `1 - damping_factor`, choose
     a link at random chosen from all pages in the corpus.
     """
-    
-    n_pages = len(corpus.keys()) # number of pages in corpus
-    links = corpus[page] # set of links from page
-    n_links = len(links) # number of links from page
+    n_pages = len(corpus.keys())# number of pages in corpus
+    links = corpus[page]# set of links from current page
+    n_links = len(links)# number of links from page
 
     # if page has no links, return equl probability distribution
     if n_links == 0:
@@ -69,14 +68,14 @@ def transition_model(corpus, page, damping_factor):
         return {page: probability for page in corpus.keys()}
     
     p_to_next_page = damping_factor / n_links
-    p_to_random_page = round((1 - damping_factor) / (len(corpus[page]) + 1), 10)
+    p_to_random_page = round((1 - damping_factor) / n_pages, 10)
 
     probability = {link: round(p_to_next_page + p_to_random_page, 10) for link in links}
-    probability[page] = p_to_random_page
-    return probability
-
-
+    for p in corpus.keys():
+        if p not in links:
+            probability[p] = p_to_random_page
     
+    return probability
 
 
 def sample_pagerank(corpus, damping_factor, n):
@@ -92,21 +91,19 @@ def sample_pagerank(corpus, damping_factor, n):
     first_page = random.choice(list(corpus.keys()))
     p = transition_model(corpus, first_page, damping_factor)
     # set counter
-    ranks = {page: 0 for page in corpus.keys()}
+    ranks_count = {page: 0 for page in corpus.keys()}
 
     # i == 0
     chosen_page = random.choices(list(p.keys()), weights=p.values(), k=1)[0]
-    ranks[chosen_page] += 1
-
+    ranks_count[chosen_page] += 1
     for _ in range(n - 1):
         p = transition_model(corpus, chosen_page, damping_factor)
         chosen_page = random.choices(list(p.keys()), weights=p.values(), k=1)[0]
-        ranks[chosen_page] += 1
+        ranks_count[chosen_page] += 1
     
-    return {page: (count / n) for page, count in ranks.items()}
+    ranks = {page: (count / n) for page, count in ranks_count.items()}
+    return ranks
         
-
-
 
 def iterate_pagerank(corpus, damping_factor):
     """
@@ -118,7 +115,7 @@ def iterate_pagerank(corpus, damping_factor):
     PageRank values should sum to 1.
     """
     d = damping_factor
-    N = len(corpus.keys()) # Number of pages in corpus
+    N = len(corpus.keys())# Number of pages in corpus
     convergence_threshold = 0.001
 
     ranks = {page: 1 / N for page in corpus.keys()} # set initial ranks
@@ -154,8 +151,6 @@ def iterate_pagerank(corpus, damping_factor):
         ranks = new_ranks
 
     return ranks
-
-
 
 
 if __name__ == "__main__":
